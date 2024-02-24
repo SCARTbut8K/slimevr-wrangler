@@ -124,7 +124,7 @@ async fn imu_listener(
             count = 0;
             tx.send(ChannelData {
                 serial_number: mac.clone(),
-                info: ChannelInfo::ImuData(imu_array),
+                info: ChannelInfo::JoyconImuData(imu_array),
             })
             .unwrap();
         }

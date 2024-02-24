@@ -27,7 +27,7 @@ fn spawn_test(tx: mpsc::Sender<ChannelData>, color: String, sn: String, z_change
         };
         tx.send(ChannelData {
             serial_number: sn.clone(),
-            info: ChannelInfo::ImuData([d, d, d]),
+            info: ChannelInfo::JoyconImuData([d, d, d]),
         })
         .unwrap();
 

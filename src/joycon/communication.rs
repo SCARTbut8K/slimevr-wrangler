@@ -7,12 +7,12 @@ use std::{
 };
 
 use itertools::Itertools;
-use nalgebra::{UnitQuaternion, Vector3};
+use nalgebra::{Quaternion, UnitQuaternion, Vector3};
 use protocol::deku::{DekuContainerRead, DekuContainerWrite};
 use protocol::PacketType;
 
 use super::{
-    imu::{Imu, JoyconAxisData},
+    imu::{Imu, JoyconAxisData, UniSensorAxisData},
     JoyconDesign,
 };
 use crate::settings;
@@ -94,7 +94,8 @@ impl ChannelData {
 #[derive(Debug, Clone)]
 pub enum ChannelInfo {
     Connected(JoyconDesign),
-    ImuData([JoyconAxisData; 3]),
+    JoyconImuData([JoyconAxisData; 3]),
+    UniSensorImuData(UniSensorAxisData),
     Battery(Battery),
     Reset,
     Disconnected,
@@ -246,7 +247,7 @@ impl Communication {
                 device.handshake(&self.socket, &self.address);
                 self.devices.insert(sn, device);
             }
-            ChannelInfo::ImuData(imu_data) => {
+            ChannelInfo::JoyconImuData(imu_data) => {
                 if let Some(device) = self.devices.get_mut(&sn) {
                     for frame in imu_data {
                         device.imu.update(frame);
@@ -282,6 +283,36 @@ impl Communication {
                     self.socket
                         .send_to(&acceleration_packet.to_bytes().unwrap(), self.address)
                         .unwrap();
+                }
+            }
+            ChannelInfo::UniSensorImuData(imu_data) => {
+                if let Some(device) = self.devices.get_mut(&sn) {
+                    device.imu.set(imu_data);
+                    device.imu_times.push(Instant::now());
+
+                    let quat: UnitQuaternion<_> = UnitQuaternion::new_normalize(
+                        Quaternion::new(imu_data.gyro_w, imu_data.gyro_x, imu_data.gyro_y, imu_data.gyro_z)
+                    );
+                    let rotation_packet = PacketType::RotationData {
+                        packet_id: 0,
+                        sensor_id: device.send_id,
+                        data_type: 1,
+                        quat: (*quat).into(),
+                        calibration_info: 0,
+                    };
+                    self.socket
+                        .send_to(&rotation_packet.to_bytes().unwrap(), self.address)
+                        .unwrap();
+
+                    // let acc = calc_acceleration(device.imu.rotation, &imu_data[2], rad_rotation);
+                    // let acceleration_packet = PacketType::Acceleration {
+                    //     packet_id: 0,
+                    //     vector: (acc.x as f32, acc.y as f32, acc.z as f32),
+                    //     sensor_id: Some(device.send_id),
+                    // };
+                    // self.socket
+                    //     .send_to(&acceleration_packet.to_bytes().unwrap(), self.address)
+                    //     .unwrap();
                 }
             }
             ChannelInfo::Battery(battery) => {

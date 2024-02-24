@@ -5,7 +5,8 @@ use crate::settings;
 #[cfg(target_os = "linux")]
 use super::linux_integration;
 use super::{
-    communication::ServerStatus, spawn_thread, test_integration::test_controllers, Communication,
+    joycon_integration, unimotion_integration,
+    communication::ServerStatus, test_integration::test_controllers, Communication,
     Status,
 };
 
@@ -41,7 +42,13 @@ impl Wrapper {
             std::thread::spawn(move || linux_integration::spawn_thread(tx, settings));
         }
 
-        std::thread::spawn(move || spawn_thread(tx, settings));
+        {
+            let tx = tx.clone();
+            let settings = settings.clone();
+            std::thread::spawn(move || unimotion_integration::spawn_thread(tx, settings));
+        }
+
+        std::thread::spawn(move || joycon_integration::spawn_thread(tx, settings));
 
         Self {
             status_rx,

@@ -4,10 +4,10 @@ mod imu;
 mod communication;
 pub use communication::*;
 
-mod integration;
+mod joycon_integration;
 #[cfg(target_os = "linux")]
 mod linux_integration;
-use integration::spawn_thread;
+mod unimotion_integration;
 mod test_integration;
 
 mod wrapper;

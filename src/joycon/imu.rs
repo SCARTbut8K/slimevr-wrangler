@@ -2,6 +2,14 @@ use nalgebra::{Quaternion, UnitQuaternion, Vector3};
 use vqf_cxx::{VQFBuilder, VQF};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UniSensorAxisData {
+    pub gyro_x: f64,
+    pub gyro_y: f64,
+    pub gyro_z: f64,
+    pub gyro_w: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct JoyconAxisData {
     pub accel_x: f64,
     pub accel_y: f64,
@@ -24,6 +32,14 @@ impl Imu {
             )),
         }
     }
+
+    // Does not update vqf. May break things
+    pub fn set(&mut self, frame: UniSensorAxisData) {
+        self.rotation = UnitQuaternion::new_normalize(
+            Quaternion::new(frame.gyro_w, frame.gyro_x, frame.gyro_y, frame.gyro_z)
+        );
+    }
+
     pub fn update(&mut self, frame: JoyconAxisData) {
         let gyro = Vector3::new(frame.gyro_x, frame.gyro_y, frame.gyro_z);
         let acc = Vector3::new(frame.accel_x, frame.accel_y, frame.accel_z);
